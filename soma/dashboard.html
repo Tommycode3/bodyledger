@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>soma — how the body is doing</title>
+<style>
+:root {
+  --ground:#F2F3F8; --surface:#FFFFFF; --sunk:#EAECF4;
+  --line:#D6D9E6; --line-soft:#E4E6F0;
+  --ink:#171A2B; --ink-soft:#4A4F68; --ink-mute:#6E7390;
+  --accent:#B4761A; --night:#2B3168;
+  --ok:#2F6B4F; --ok-soft:#DCEBE1;
+  --wait:#8A6412; --wait-soft:#F5E9CC;
+  --off:#8C3A31; --off-soft:#F2DEDA;
+  --trace:#5B62A8; --trace-fill:rgba(91,98,168,.12);
+  --shadow:0 1px 2px rgba(23,26,43,.06), 0 6px 18px rgba(23,26,43,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#101223; --surface:#181B30; --sunk:#14172A;
+    --line:#2C3050; --line-soft:#23273F;
+    --ink:#EDEEF6; --ink-soft:#B9BDD4; --ink-mute:#878CAB;
+    --accent:#E9B45C; --night:#A9B0E8;
+    --ok:#7CC49B; --ok-soft:#1B3129;
+    --wait:#E0BC6A; --wait-soft:#332A14;
+    --off:#E09188; --off-soft:#35201D;
+    --trace:#9AA2E4; --trace-fill:rgba(154,162,228,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:#101223; --surface:#181B30; --sunk:#14172A;
+  --line:#2C3050; --line-soft:#23273F;
+  --ink:#EDEEF6; --ink-soft:#B9BDD4; --ink-mute:#878CAB;
+  --accent:#E9B45C; --night:#A9B0E8;
+  --ok:#7CC49B; --ok-soft:#1B3129;
+  --wait:#E0BC6A; --wait-soft:#332A14;
+  --off:#E09188; --off-soft:#35201D;
+  --trace:#9AA2E4; --trace-fill:rgba(154,162,228,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:15px; line-height:1.55;
+  padding:clamp(1rem,3vw,2.25rem) clamp(.8rem,3vw,2rem) 4rem; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:74rem;margin:0 auto;display:flex;flex-direction:column;gap:2.5rem}
+h1,h2{font-family:ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+      font-weight:600;margin:0;letter-spacing:-.012em;text-wrap:balance}
+h1{font-size:clamp(1.5rem,3.5vw,2rem);line-height:1.15}
+h2{font-size:1.15rem}
+.eyebrow{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-mute);margin:0}
+.mono,code{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;font-size:.84rem}
+.num{font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-direction:column;gap:.5rem}
+.topbar{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap}
+button{
+  font:inherit;font-size:.82rem;background:var(--surface);color:var(--ink-soft);
+  border:1px solid var(--line);border-radius:3px;padding:.3rem .7rem;cursor:pointer;
+}
+button:hover{border-color:var(--ink-mute);color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* today box */
+.today{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  padding:1.15rem 1.3rem;display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;box-shadow:var(--shadow)}
+.score{display:flex;flex-direction:column;gap:.15rem;min-width:8rem}
+.score .big{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  font-size:2.9rem;line-height:1;font-weight:500;font-variant-numeric:tabular-nums}
+.score .cap{font-size:.78rem;color:var(--ink-mute)}
+.facts{flex:1 1 22rem;display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.fact{font-size:.9rem;color:var(--ink-soft)}
+.fact b{color:var(--ink);font-weight:600}
+.hint{font-size:.88rem;color:var(--ink);border-left:2px solid var(--accent);padding-left:.7rem;margin-top:.35rem}
+
+.pill{display:inline-flex;align-items:center;gap:.35rem;font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;padding:.14rem .45rem;border-radius:2px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.wait{background:var(--wait-soft);color:var(--wait)}
+.pill.off{background:var(--off-soft);color:var(--off)}
+
+section{display:flex;flex-direction:column;gap:.9rem}
+.sec-head{display:flex;align-items:baseline;gap:.75rem;border-top:2px solid var(--ink);padding-top:.7rem;flex-wrap:wrap}
+.sec-head .note{font-size:.8rem;color:var(--ink-mute)}
+
+.cards{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr))}
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:4px;
+  padding:.85rem .95rem;display:flex;flex-direction:column;gap:.5rem}
+.card .head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.card .name{font-size:.83rem;color:var(--ink-mute)}
+.card .val{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  font-size:1.35rem;font-weight:500;font-variant-numeric:tabular-nums;line-height:1}
+.card .unit{font-size:.72rem;color:var(--ink-mute);margin-left:.15rem}
+.card .foot{display:flex;justify-content:space-between;align-items:baseline;font-size:.72rem;color:var(--ink-mute)}
+.delta{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.delta.up{color:var(--ok)} .delta.down{color:var(--off)} .delta.flat{color:var(--ink-mute)}
+svg.spark{display:block;width:100%;height:44px;overflow:visible}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line-soft);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:36rem}
+th,td{text-align:left;padding:.6rem .85rem;border-bottom:1px solid var(--line-soft);vertical-align:top}
+thead th{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;font-size:.66rem;
+  text-transform:uppercase;letter-spacing:.11em;color:var(--ink-mute);font-weight:500;background:var(--sunk)}
+tbody tr:last-child td{border-bottom:none}
+td.q{color:var(--ink-soft);font-size:.88rem}
+td.n,td.r{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:.84rem;white-space:nowrap}
+tr.dim td{opacity:.55}
+
+.strip{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))}
+.src{background:var(--surface);border:1px solid var(--line-soft);border-left:3px solid var(--trace);
+  border-radius:3px;padding:.7rem .85rem;display:flex;flex-direction:column;gap:.15rem}
+.src .s-name{font-weight:600;font-size:.9rem}
+.src .s-meta{font-size:.76rem;color:var(--ink-mute)}
+
+.empty{color:var(--ink-mute);font-size:.9rem;padding:1.5rem;text-align:center;
+  border:1px dashed var(--line);border-radius:4px}
+footer{border-top:1px solid var(--line);padding-top:.9rem;font-size:.78rem;color:var(--ink-mute)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="empty">Loading data…</div>
+</div>
+
+<script>
+function esc(s){ return String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function fmt(v, metric, unit){
+  if (v == null) return "—";
+  if (metric === "sleep.duration_min" || metric === "sleep.deep_min" ||
+      metric === "sleep.rem_min" ||
+      metric === "sleep.light_min")
+    return Math.floor(v/60) + "h" + String(Math.round(v%60)).padStart(2,"0");
+  if (metric === "sleep.start_hour" || metric === "sleep.end_hour"){
+    const h = Math.floor(v), m = Math.round((v-h)*60);
+    return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+  }
+  if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString("en-US");
+  if (Number.isInteger(v)) return String(v);
+  return v.toFixed(Math.abs(v) < 10 ? 1 : 0);
+}
+
+/* Sparkline: gaps stay gaps. Joining two points two weeks apart would
+   tell a continuity that never happened. */
+function spark(series, higherBetter, median){
+  const W = 240, H = 44, pad = 3;
+  const vals = series.map(p => p.v).filter(v => v != null);
+  if (!vals.length) return "";
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (median != null){ lo = Math.min(lo, median); hi = Math.max(hi, median); }
+  if (hi === lo){ hi = lo + 1; lo = lo - 1; }
+  const n = series.length;
+  const x = i => pad + (W - 2*pad) * (n === 1 ? .5 : i/(n-1));
+  const y = v => H - pad - (H - 2*pad) * (v - lo)/(hi - lo);
+
+  const segs = []; let cur = [];
+  series.forEach((p,i) => {
+    if (p.v == null){ if (cur.length) segs.push(cur); cur = []; }
+    else cur.push([x(i), y(p.v)]);
+  });
+  if (cur.length) segs.push(cur);
+
+  let out = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`;
+  if (median != null)
+    out += `<line x1="${pad}" x2="${W-pad}" y1="${y(median).toFixed(1)}" y2="${y(median).toFixed(1)}"
+             stroke="var(--ink-mute)" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>`;
+  for (const s of segs){
+    if (s.length === 1){
+      out += `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.6" fill="var(--trace)"/>`;
+      continue;
+    }
+    const d = s.map((p,i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    out += `<path d="${d} L${s[s.length-1][0].toFixed(1)} ${H-pad} L${s[0][0].toFixed(1)} ${H-pad} Z"
+             fill="var(--trace-fill)" stroke="none"/>`;
+    out += `<path d="${d}" fill="none" stroke="var(--trace)" stroke-width="1.4"
+             stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  const last = segs.length ? segs[segs.length-1][segs[segs.length-1].length-1] : null;
+  if (last) out += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.6"
+                     fill="var(--accent)" stroke="var(--surface)" stroke-width="1.2"/>`;
+  return out + "</svg>";
+}
+
+function deltaHtml(card){
+  if (card.last == null || card.median == null) return "";
+  const d = card.last - card.median;
+  const rel = card.median !== 0 ? d / Math.abs(card.median) : 0;
+  if (Math.abs(rel) < 0.05) return `<span class="delta flat">= usual</span>`;
+  // "better" depends on the metric: lower resting HR is better, more sleep is better
+  let better = null;
+  if (card.higher_better === true) better = d > 0;
+  else if (card.higher_better === false) better = d < 0;
+  const cls = better === null ? "flat" : (better ? "up" : "down");
+  const sign = d > 0 ? "+" : "−";
+  return `<span class="delta ${cls}">${sign}${Math.abs(Math.round(rel*100))}% vs usual</span>`;
+}
+
+function renderToday(d){
+  const t = d.today, comps = t.components.filter(c => c.value != null);
+  const evid = Math.round((t.confidence||0)*100);
+  let score;
+  if (t.readiness == null){
+    score = `<div class="score"><span class="big" style="color:var(--ink-mute)">—</span>
+      <span class="cap">evidence ${evid}%: too little<br>for a score</span></div>`;
+  } else {
+    const col = t.readiness < 38 ? "var(--off)" : t.readiness > 68 ? "var(--ok)" : "var(--ink)";
+    score = `<div class="score"><span class="big num" style="color:${col}">${t.readiness}</span>
+      <span class="cap">readiness · posture ${esc(t.posture)}<br>evidence ${evid}%</span></div>`;
+  }
+  const facts = comps.map(c => `<div class="fact">${esc(c.text)}</div>`).join("")
+    || `<div class="fact">No data has arrived for today yet.</div>`;
+  const miss = t.missing.length
+    ? `<div class="fact" style="color:var(--ink-mute)">not yet arrived: ${esc(t.missing.join(", "))}</div>` : "";
+  const load = t.load_note ? `<div class="fact">${esc(t.load_note)}</div>` : "";
+  return `<div class="today">${score}
+    <div class="facts">${facts}${load}${miss}
+      <div class="hint">${esc(t.hint)}</div></div></div>`;
+}
+
+function renderPanels(d){
+  return d.panels.map(p => `
+    <section>
+      <div class="sec-head"><h2>${esc(p.title)}</h2>
+        <span class="note">last 90 days · dashed line = your usual</span></div>
+      <div class="cards">${p.cards.map(c => `
+        <div class="card" title="${esc(c.desc)}">
+          <div class="head">
+            <span class="name">${esc(c.label)}</span>
+            <span class="val num">${fmt(c.last, c.metric)}<span class="unit">${esc(c.unit)}</span></span>
+          </div>
+          ${spark(c.series, c.higher_better, c.median)}
+          <div class="foot"><span>${c.n} days</span>${deltaHtml(c)}</div>
+        </div>`).join("")}</div>
+    </section>`).join("");
+}
+
+function renderInsight(d){
+  const i = d.insight;
+  const rows = i.hypotheses.map(h => {
+    const verdict = h.survives ? `<span class="pill ok">holds</span>`
+      : h.testable ? `<span class="pill wait">does not hold</span>`
+      : `<span class="pill off">n=${h.n}</span>`;
+    const lag = h.lag === 0 ? "same day" : h.lag > 0 ? "day before" : "day after";
+    return `<tr class="${h.testable ? "" : "dim"}">
+      <td class="q">${esc(h.q)}</td><td class="n">${esc(lag)}</td>
+      <td class="r">${h.rho == null ? "—" : (h.rho > 0 ? "+" : "") + h.rho.toFixed(2)}</td>
+      <td class="r">${h.p == null ? "—" : h.p.toFixed(3)}</td>
+      <td class="n">${h.n}</td><td>${verdict}</td></tr>`;
+  }).join("");
+  return `<section>
+    <div class="sec-head"><h2>What holds</h2>
+      <span class="note">${i.total} hypotheses written before looking at the data ·
+        ${i.tested} testable (${i.min_pairs} paired days needed) · false positives controlled at q=${i.q}</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Hypothesis</th><th>lag</th><th>rho</th><th>p</th><th>n</th><th>result</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <p style="font-size:.82rem;color:var(--ink-mute);margin:0">
+      “Holds” means the two move together, not that one causes the other.</p>
+  </section>`;
+}
+
+function renderSources(d){
+  const cards = d.coverage.map(c => `
+    <div class="src"><span class="s-name">${esc(c.source)}</span>
+      <span class="s-meta num">${c.n.toLocaleString("en-US")} samples · ${c.metrics} metrics</span>
+      <span class="s-meta">${esc(c.first_day)} → ${esc(c.last_day)}</span>
+      <span class="s-meta">${c.last_sync ? "sync " + esc(c.last_sync.replace("T"," ")) : "—"}</span>
+    </div>`).join("");
+  const ev = d.events.map(e => {
+    let dur = "";
+    if (e.end_ts && e.start_ts) dur = Math.round((e.end_ts - e.start_ts)/60) + " min";
+    return `<tr><td class="n">${esc(e.day)}</td><td class="q">${esc(e.kind === "sleep" ? "sleep" : "workout")}</td>
+      <td class="q">${esc(e.title)}</td><td class="n">${dur}</td></tr>`;
+  }).join("");
+  return `<section>
+    <div class="sec-head"><h2>Sources</h2><span class="note">where all of this comes from</span></div>
+    <div class="strip">${cards}</div>
+    <div class="tablewrap" style="margin-top:.4rem"><table>
+      <thead><tr><th>day</th><th>type</th><th>what</th><th>duration</th></tr></thead>
+      <tbody>${ev}</tbody></table></div>
+  </section>`;
+}
+
+async function load(){
+  const app = document.getElementById("app");
+  let d;
+  try {
+    const r = await fetch("/api/data", {cache:"no-store"});
+    d = await r.json();
+  } catch (e) {
+    app.innerHTML = `<div class="empty">Cannot read the data.
+      Is the server still running? <code>soma dashboard</code></div>`;
+    return;
+  }
+  app.innerHTML = `
+    <header>
+      <div class="topbar">
+        <div><p class="eyebrow">soma · ${esc(d.today.day)}</p>
+          <h1>How the body is doing</h1></div>
+        <button id="refresh">Refresh</button>
+      </div>
+      ${renderToday(d)}
+    </header>
+    ${renderPanels(d)}
+    ${renderInsight(d)}
+    ${renderSources(d)}
+    <footer>Local data in <span class="mono">~/.soma/soma.db</span> ·
+      page generated ${esc(d.generated.replace("T"," "))} · read-only</footer>`;
+  document.getElementById("refresh").addEventListener("click", load);
+}
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Local data, logs and secrets (soma itself writes to ~/.soma, outside the repo)
+*.db
+*.log
+.env
+today.json
+
+.DS_Store
